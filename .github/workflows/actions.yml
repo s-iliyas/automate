@@ -27,7 +27,7 @@ jobs:
       run: |
           export CODE_VERSION=$(date -u +"%Y-%m-%dT%H:%M:%S")
           zip ./zip_files/code_${CODE_VERSION}.zip ./*
-    - name: Sync with S3
+    - name: AWS
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -36,5 +36,6 @@ jobs:
           aws s3 sync cloudformation s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation --region ${{ secrets.AWS_REGION }}
           aws cloudformation create-stack --capabilities CAPABILITY_IAM \
           --stack-name STACK_${CODE_VERSION} \
+          --region ${{ secrets.AWS_REGION }} \
           --template-body s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation/cloudformation.yml \
           --parameters ParameterKey=VERSION,ParameterValue=${CODE_VERSION}
