@@ -18,7 +18,7 @@ jobs:
         node-version: [16.x]
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
@@ -40,15 +40,15 @@ jobs:
       run: |
           zip ./zip_files/code_${CODE_VERSION}.zip ./*
 
-    - name: AWS s3 sync
+    - name: AWS S3 Sync
       run: |
           aws s3 sync zip_files s3://${{ secrets.AWS_BUCKET_NAME }}/zip_files --region ${{ secrets.AWS_REGION }}
           aws s3 sync cloudformation s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation --region ${{ secrets.AWS_REGION }}
 
-    - name: AWS cloudformation stack creation or update
+    - name: AWS Cloudformation Stack Creation or Update
       run: |
           aws cloudformation create-stack --capabilities CAPABILITY_IAM \
-          --stack-name STACK_${CODE_VERSION} \
+          --stack-name STACK-${CODE_VERSION} \
           --region ${{ secrets.AWS_REGION }} \
           --template-body s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation/cloudformation.yml \
           --parameters ParameterKey=VERSION,ParameterValue=${CODE_VERSION}
