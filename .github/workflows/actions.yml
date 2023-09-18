@@ -26,11 +26,11 @@ jobs:
     - name: Zip Code
       run: |
           rm -f code.zip
-          zip ./code.zip ./*
+          zip ./zip_files/code.zip ./*
 
     - name: Sync with S3
       run: |
-          aws s3 sync ./code.zip s3://${{ secrets.AWS_BUCKET_NAME }}
+          aws s3 sync zip_files s3://${{ secrets.AWS_BUCKET_NAME }}/zip_files
           echo '${{ secrets.AWS_BUCKET_NAME }}'
 
     # - name: serverless deploy
