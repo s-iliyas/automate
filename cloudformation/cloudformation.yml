@@ -5,39 +5,43 @@ Parameters:
   VERSION:
     Type: String
     Description: The environment (e.g., dev, prod)
-    Default: dev
+    Default: "dev"
+  BUCKETNAME:
+    Type: String
+    Description: The S3 bucket name
+    Default: "dev"
 
 Resources:
   TestLambda:
-    Type: AWS::Lambda::Function
+    Type: "AWS::Lambda::Function"
     Properties:
-      Handler: code.index.handler
-      FunctionName: TestLambdaFunction
+      Handler: "index.handler"
+      FunctionName: "TestLambdaFunction"
       Code:
-        S3Bucket: test-iliyas  # Replace with your S3 bucket name
-        S3Key: automation/code_${VERSION}.zip
-      Runtime: nodejs16.x
+        S3Bucket: !Ref BUCKETNAME
+        S3Key: !Sub "automation/code_${VERSION}.zip"
+      Runtime: "nodejs16.x"
       Role: !GetAtt LambdaExecutionRole.Arn
 
   LambdaExecutionRole:
-    Type: AWS::IAM::Role
+    Type: "AWS::IAM::Role"
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-        - Effect: Allow
+        - Effect: "Allow"
           Principal:
             Service:
-            - lambda.amazonaws.com
+            - "lambda.amazonaws.com"
           Action:
-          - sts:AssumeRole
+          - "sts:AssumeRole"
       Path: "/"
       Policies:
-      - PolicyName: root
+      - PolicyName: "root"
         PolicyDocument:
           Version: '2012-10-17'
           Statement:
-          - Effect: Allow
+          - Effect: "Allow"
             Action:
-            - logs:*
-            Resource: arn:aws:logs:*:*:*
+            - "logs:*"
+            Resource: "arn:aws:logs:*:*:*"

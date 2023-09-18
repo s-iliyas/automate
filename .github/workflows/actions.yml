@@ -51,4 +51,4 @@ jobs:
           --stack-name STACK-${CODE_VERSION} \
           --region ${{ secrets.AWS_REGION }} \
           --template-body s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation/cloudformation.yml \
-          --parameters ParameterKey=VERSION,ParameterValue=${CODE_VERSION}
+          --parameters ParameterKey=VERSION,ParameterValue=${CODE_VERSION},ParameterKey=BUCKETNAME,ParameterValue=${{ secrets.AWS_BUCKET_NAME }}
