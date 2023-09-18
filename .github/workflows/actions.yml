@@ -1,4 +1,4 @@
-name: Deploy Main branch
+name: Deploy Main Branch
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: deploy
+    name: Deploy Code to Lambda
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,8 +18,20 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-    - run: ls
     - run: npm ci
+    - name: Install AWS CLI
+      run: |
+          sudo apt-get install -y awscli
+          aws --version
+    - name: Zip Code
+      run: |
+          rm code.zip
+          zip ./code.zip ./*
+
+    - name: Sync with S3
+      run: |
+          aws s3 sync ./code.zip s3://${{ secrets.AWS_BUCKET_NAME }}
+          
     # - name: serverless deploy
     #   uses: serverless/github-action@v3.2
     #   with:
