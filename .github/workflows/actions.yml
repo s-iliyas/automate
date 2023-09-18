@@ -25,13 +25,11 @@ jobs:
           aws --version
     - name: Zip Code
       run: |
-          rm -f code.zip
-          zip ./zip_files/code.zip ./*
-
+          export CODE_VERSION=$(date -u +"%Y-%m-%dT%H:%M:%S")
+          zip ./zip_files/code_${CODE_VERSION}.zip ./*
     - name: Sync with S3
       run: |
           aws s3 sync zip_files s3://${{ secrets.AWS_BUCKET_NAME }}/zip_files
-          echo '${{ secrets.AWS_BUCKET_NAME }}'
 
     # - name: serverless deploy
     #   uses: serverless/github-action@v3.2
