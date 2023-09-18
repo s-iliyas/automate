@@ -33,6 +33,12 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
           aws s3 sync zip_files s3://${{ secrets.AWS_BUCKET_NAME }}/zip_files --region ${{ secrets.AWS_REGION }}
+          aws s3 sync cloudformation.yml s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation/cloudformation.yml --region ${{ secrets.AWS_REGION }}
+          aws cloudformation create-stack --capabilities CAPABILITY_IAM \
+          --stack-name STACK_${CODE_VERSION} \
+          --template-body s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation/cloudformation.yml \
+          --parameters ParameterKey=CODE_VERSION,ParameterValue=${CODE_VERSION}
+
 
     # - name: serverless deploy
     #   uses: serverless/github-action@v3.2
