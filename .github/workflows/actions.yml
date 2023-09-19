@@ -5,50 +5,69 @@ on:
     branches:
       - main
 
-env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
 jobs:
   deploy:
     name: Deploy Code to Lambda
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [16.x]
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v2
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
 
-    - run: npm ci
+      - name: Install Dependencies
+        run: npm ci
 
-    - name: Install AWS CLI
-      run: |
-          sudo apt-get install -y awscli
+      - name: Install AWS CLI
+        run: |
+          apt-get -qq update
+          apt-get -qq install awscli
           aws --version
 
-    - name: Set Code Version
-      run: |
-        export CODE_VERSION=$(date -u +"%Y%m%dT%H%M%S")
-        echo "${CODE_VERSION}"
+      - name: Set Code Version
+        id: code-version
+        run: |
+          echo "CODE_VERSION=$(date -u +"%Y%m%dT%H%M%S")" >> $GITHUB_ENV
+          echo "::set-output name=version::$(date -u +"%Y%m%dT%H%M%S")"
 
-    - name: Zip Code
-      run: |
-          zip ./zip_files/code_${CODE_VERSION}.zip ./*
+      - name: Zip Code
+        run: |
+          CODE_VERSION="${{ env.CODE_VERSION }}"
+          echo "code_${CODE_VERSION}"
+          zip -qr "./zip_files/code_${CODE_VERSION}.zip" .
 
-    - name: AWS S3 Sync
-      run: |
-          aws s3 sync zip_files s3://${{ secrets.AWS_BUCKET_NAME }}/zip_files --region ${{ secrets.AWS_REGION }}
-          aws s3 sync cloudformation s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation --region ${{ secrets.AWS_REGION }}
+      - name: AWS S3 Sync
+        run: |
+          aws s3 sync ./zip_files "s3://${{ secrets.AWS_BUCKET_NAME }}/zip_files" --region ${{ secrets.AWS_REGION }}
+          aws s3 sync ./cloudformation "s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation" --region ${{ secrets.AWS_REGION }}
 
-    - name: AWS Cloudformation Stack Creation or Update
-      run: |
-          aws cloudformation create-stack --capabilities CAPABILITY_IAM \
-          --stack-name STACK-${CODE_VERSION} \
-          --region ${{ secrets.AWS_REGION }} \
-          --template-body s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation/cloudformation.yml \
-          --parameters ParameterKey=VERSION,ParameterValue=${CODE_VERSION},ParameterKey=BUCKETNAME,ParameterValue=${{ secrets.AWS_BUCKET_NAME }}
+      - name: AWS Cloudformation Stack Creation or Update
+        run: |
+          CODE_VERSION="${{ env.CODE_VERSION }}"
+          STACK_NAME="STACK-${CODE_VERSION}"
+          TEMPLATE_URL="s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation/cloudformation.yml"
+
+          # Check if the stack already exists
+          if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "${{ secrets.AWS_REGION }}" 2>/dev/null; then
+            echo "Updating CloudFormation Stack $STACK_NAME..."
+            aws cloudformation update-stack --capabilities CAPABILITY_IAM \
+              --stack-name "$STACK_NAME" \
+              --region "${{ secrets.AWS_REGION }}" \
+              --template-url "$TEMPLATE_URL" \
+              --parameters ParameterKey=VERSION,ParameterValue="$CODE_VERSION" ParameterKey=BUCKETNAME,ParameterValue="${{ secrets.AWS_BUCKET_NAME }}"
+          else
+            echo "Creating CloudFormation Stack $STACK_NAME..."
+            aws cloudformation create-stack --capabilities CAPABILITY_IAM \
+              --stack-name "$STACK_NAME" \
+              --region "${{ secrets.AWS_REGION }}" \
+              --template-url "$TEMPLATE_URL" \
+              --parameters ParameterKey=VERSION,ParameterValue="$CODE_VERSION" ParameterKey=BUCKETNAME,ParameterValue="${{ secrets.AWS_BUCKET_NAME }}"
+          fi
