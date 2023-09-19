@@ -28,8 +28,8 @@ jobs:
 
       - name: Install AWS CLI
         run: |
-          apt-get -qq update
-          apt-get -qq install awscli
+         sudo apt-get -qq update
+         sudo apt-get -qq install awscli
           aws --version
 
       - name: Set Code Version
