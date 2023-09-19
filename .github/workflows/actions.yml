@@ -51,23 +51,14 @@ jobs:
 
       - name: AWS Cloudformation Stack Creation or Update
         run: |
-          CODE_VERSION="${{ env.CODE_VERSION }}"
-          STACK_NAME="STACK-${CODE_VERSION}"
-          TEMPLATE_URL="s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation/cloudformation.yml"
+          CODE_VERSION=${{ env.CODE_VERSION }}
+          STACK_NAME=STACK-${CODE_VERSION}
+          TEMPLATE_URL=s3://${{ secrets.AWS_BUCKET_NAME }}/cloudformation/cloudformation.yml
+          
+          echo "Creating CloudFormation Stack ${STACK_NAME}..."
+          aws cloudformation create-stack --capabilities CAPABILITY_IAM \
+            --stack-name ${STACK_NAME} \
+            --region ${{ secrets.AWS_REGION }} \
+            --template-url ${TEMPLATE_URL} \
+            --parameters ParameterKey=VERSION,ParameterValue=${CODE_VERSION} ParameterKey=BUCKETNAME,ParameterValue=${{ secrets.AWS_BUCKET_NAME }}
 
-          # Check if the stack already exists
-          if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "${{ secrets.AWS_REGION }}" 2>/dev/null; then
-            echo "Updating CloudFormation Stack $STACK_NAME..."
-            aws cloudformation update-stack --capabilities CAPABILITY_IAM \
-              --stack-name "$STACK_NAME" \
-              --region "${{ secrets.AWS_REGION }}" \
-              --template-url "$TEMPLATE_URL" \
-              --parameters ParameterKey=VERSION,ParameterValue="$CODE_VERSION" ParameterKey=BUCKETNAME,ParameterValue="${{ secrets.AWS_BUCKET_NAME }}"
-          else
-            echo "Creating CloudFormation Stack $STACK_NAME..."
-            aws cloudformation create-stack --capabilities CAPABILITY_IAM \
-              --stack-name "$STACK_NAME" \
-              --region "${{ secrets.AWS_REGION }}" \
-              --template-url "$TEMPLATE_URL" \
-              --parameters ParameterKey=VERSION,ParameterValue="$CODE_VERSION" ParameterKey=BUCKETNAME,ParameterValue="${{ secrets.AWS_BUCKET_NAME }}"
-          fi
